@@ -1,38 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, arabicFont } from '../theme';
-import { shuffle, pickDistractors } from '../utils';
+import { buildDeck } from '../quiz';
+import { load, save, remove, clearAll, loadWordStats, recordAnswer } from '../storage';
 
 const MODES = [
   { id: 'ar-en', label: 'Arabic → English' },
   { id: 'en-ar', label: 'English → Arabic' },
   { id: 'mixed', label: 'Mixed' },
 ];
-
-const OPTION_COUNT = 4;
-
-function buildQuestion(word, pool, mode) {
-  const direction =
-    mode === 'mixed' ? (Math.random() < 0.5 ? 'ar-en' : 'en-ar') : mode;
-  const answerKey = direction === 'ar-en' ? 'en' : 'ar';
-  const promptKey = direction === 'ar-en' ? 'ar' : 'en';
-
-  const answer = word[answerKey];
-  const answerPool = [...new Set(pool.map((w) => w[answerKey]))];
-  const options = shuffle([
-    answer,
-    ...pickDistractors(answerPool, answer, OPTION_COUNT - 1),
-  ]);
-
-  return { word, direction, prompt: word[promptKey], answerKey, answer, options };
-}
-
-// Every word in `deckPool`, in random order, exactly once.
-// Wrong answers are drawn from `distractorPool` so a short retry round
-// (e.g. only the missed words) still offers a full set of choices.
-function buildDeck(deckPool, mode, distractorPool = deckPool) {
-  return shuffle(deckPool).map((word) => buildQuestion(word, distractorPool, mode));
-}
 
 function Prompt({ question }) {
   const isArabic = question.direction === 'ar-en';
@@ -48,41 +24,97 @@ function Prompt({ question }) {
   );
 }
 
-export default function TestScreen({ pool, scopeLabel }) {
-  const [mode, setMode] = useState('ar-en');
-  const [deck, setDeck] = useState(null);
-  const [index, setIndex] = useState(0);
+export default function TestScreen({ pool, scopeId, scopeLabel }) {
+  const sessionKey = `session:${scopeId}`;
+  const historyKey = `history:${scopeId}`;
+
+  const [mode, setMode] = useState(() => {
+    const saved = load('mode', 'ar-en');
+    return MODES.some((m) => m.id === saved) ? saved : 'ar-en';
+  });
+
+  // An unfinished test is restored on load, so closing the tab (or losing
+  // signal mid-test) doesn't throw away the round.
+  const [session, setSession] = useState(() => load(sessionKey, null));
   const [selected, setSelected] = useState(null);
-  const [score, setScore] = useState(0);
-  const [missed, setMissed] = useState([]);
+  const [stats, setStats] = useState(loadWordStats);
+  const [confirmingReset, setConfirmingReset] = useState(false);
+  const [history, setHistory] = useState(() => load(historyKey, []));
+
+  // Re-read when the lesson scope changes (the component is remounted by key,
+  // but this keeps things correct if that ever stops being true).
+  useEffect(() => {
+    setSession(load(sessionKey, null));
+    setHistory(load(historyKey, []));
+    setSelected(null);
+  }, [sessionKey, historyKey]);
+
+  function persistSession(next) {
+    setSession(next);
+    if (next) save(sessionKey, next);
+    else remove(sessionKey);
+  }
 
   function start(nextMode = mode, customPool = pool) {
     setMode(nextMode);
-    setDeck(buildDeck(customPool, nextMode, pool));
-    setIndex(0);
+    save('mode', nextMode);
     setSelected(null);
-    setScore(0);
-    setMissed([]);
+    persistSession({
+      deck: buildDeck(customPool, nextMode, pool),
+      index: 0,
+      score: 0,
+      missed: [],
+      total: customPool.length,
+    });
   }
 
   function answer(option) {
-    if (selected !== null) return;
+    if (selected !== null || !session) return;
     setSelected(option);
-    const question = deck[index];
-    if (option === question.answer) {
-      setScore((s) => s + 1);
-    } else {
-      setMissed((m) => [...m, question.word]);
-    }
+
+    const question = session.deck[session.index];
+    const wasCorrect = option === question.answer;
+    setStats(recordAnswer(question.word, wasCorrect));
+
+    persistSession({
+      ...session,
+      score: session.score + (wasCorrect ? 1 : 0),
+      missed: wasCorrect ? session.missed : [...session.missed, question.word],
+    });
   }
 
   function next() {
     setSelected(null);
-    setIndex((i) => i + 1);
+    const nextIndex = session.index + 1;
+    const finished = nextIndex >= session.deck.length;
+
+    if (finished) {
+      const entry = {
+        score: session.score,
+        total: session.deck.length,
+        mode,
+        at: Date.now(),
+      };
+      const nextHistory = [entry, ...history].slice(0, 20);
+      setHistory(nextHistory);
+      save(historyKey, nextHistory);
+    }
+
+    persistSession({ ...session, index: nextIndex });
   }
 
+  const weakWords = pool.filter((w) => {
+    const s = stats[w.ar];
+    return s && s.wrong > 0 && s.wrong >= s.right;
+  });
+
+  const best = history.reduce(
+    (b, h) => (b === null || h.score / h.total > b.score / b.total ? h : b),
+    null
+  );
+
   // ---- Setup screen -------------------------------------------------------
-  if (!deck) {
+  if (!session) {
     return (
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.card}>
@@ -92,11 +124,37 @@ export default function TestScreen({ pool, scopeLabel }) {
             asked exactly once.
           </Text>
 
+          {history.length > 0 && (
+            <View style={styles.statsStrip}>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>
+                  {history[0].score}/{history[0].total}
+                </Text>
+                <Text style={styles.statLabel}>Last</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>
+                  {best.score}/{best.total}
+                </Text>
+                <Text style={styles.statLabel}>Best</Text>
+              </View>
+              <View style={styles.stat}>
+                <Text style={styles.statValue}>{history.length}</Text>
+                <Text style={styles.statLabel}>
+                  {history.length === 1 ? 'Attempt' : 'Attempts'}
+                </Text>
+              </View>
+            </View>
+          )}
+
           <Text style={styles.label}>Direction</Text>
           {MODES.map((m) => (
             <Pressable
               key={m.id}
-              onPress={() => setMode(m.id)}
+              onPress={() => {
+                setMode(m.id);
+                save('mode', m.id);
+              }}
               style={[styles.modeRow, mode === m.id && styles.modeRowActive]}
             >
               <View style={[styles.radio, mode === m.id && styles.radioActive]} />
@@ -107,13 +165,48 @@ export default function TestScreen({ pool, scopeLabel }) {
           <Pressable style={styles.primaryButton} onPress={() => start()}>
             <Text style={styles.primaryButtonText}>Start test</Text>
           </Pressable>
+
+          {weakWords.length > 0 && (
+            <Pressable
+              style={styles.secondaryButton}
+              onPress={() => start(mode, weakWords)}
+            >
+              <Text style={styles.secondaryButtonText}>
+                Drill my {weakWords.length} weakest{' '}
+                {weakWords.length === 1 ? 'word' : 'words'}
+              </Text>
+            </Pressable>
+          )}
+
+          {(history.length > 0 || Object.keys(stats).length > 0) && (
+            <Pressable
+              style={styles.linkButton}
+              onPress={() => {
+                if (!confirmingReset) {
+                  setConfirmingReset(true);
+                  return;
+                }
+                clearAll();
+                setStats({});
+                setHistory([]);
+                setConfirmingReset(false);
+              }}
+            >
+              <Text style={[styles.linkButtonText, confirmingReset && styles.linkDanger]}>
+                {confirmingReset
+                  ? 'Tap again to erase all scores and history'
+                  : 'Reset saved progress'}
+              </Text>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
     );
   }
 
   // ---- Results screen -----------------------------------------------------
-  if (index >= deck.length) {
+  if (session.index >= session.deck.length) {
+    const { score, deck, missed } = session;
     const pct = Math.round((score / deck.length) * 100);
     return (
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -121,7 +214,9 @@ export default function TestScreen({ pool, scopeLabel }) {
           <Text style={styles.title}>
             {score} / {deck.length} correct
           </Text>
-          <Text style={styles.subtitle}>{pct}% — {scopeLabel}</Text>
+          <Text style={styles.subtitle}>
+            {pct}% — {scopeLabel}
+          </Text>
 
           {missed.length > 0 && (
             <>
@@ -153,8 +248,8 @@ export default function TestScreen({ pool, scopeLabel }) {
             </Pressable>
           )}
 
-          <Pressable style={styles.linkButton} onPress={() => setDeck(null)}>
-            <Text style={styles.linkButtonText}>Change settings</Text>
+          <Pressable style={styles.linkButton} onPress={() => persistSession(null)}>
+            <Text style={styles.linkButtonText}>Back to settings</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -162,17 +257,17 @@ export default function TestScreen({ pool, scopeLabel }) {
   }
 
   // ---- Question screen ----------------------------------------------------
-  const question = deck[index];
+  const question = session.deck[session.index];
   const answered = selected !== null;
-  const progress = (index + (answered ? 1 : 0)) / deck.length;
+  const progress = (session.index + (answered ? 1 : 0)) / session.deck.length;
 
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
       <View style={styles.progressHeader}>
         <Text style={styles.progressText}>
-          {index + 1} of {deck.length}
+          {session.index + 1} of {session.deck.length}
         </Text>
-        <Text style={styles.progressText}>Score {score}</Text>
+        <Text style={styles.progressText}>Score {session.score}</Text>
       </View>
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
@@ -218,12 +313,18 @@ export default function TestScreen({ pool, scopeLabel }) {
             </Text>
             <Pressable style={styles.primaryButton} onPress={next}>
               <Text style={styles.primaryButtonText}>
-                {index + 1 === deck.length ? 'See results' : 'Next word'}
+                {session.index + 1 === session.deck.length
+                  ? 'See results'
+                  : 'Next word'}
               </Text>
             </Pressable>
           </View>
         )}
       </View>
+
+      <Pressable style={styles.linkButton} onPress={() => persistSession(null)}>
+        <Text style={styles.linkButtonText}>Abandon this test</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -247,6 +348,28 @@ const styles = StyleSheet.create({
     color: colors.muted,
     marginTop: 22,
     marginBottom: 8,
+  },
+
+  statsStrip: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 18,
+  },
+  stat: {
+    flex: 1,
+    backgroundColor: colors.accentSoft,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  statValue: { fontSize: 20, fontWeight: '700', color: colors.accent },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: colors.muted,
+    marginTop: 2,
   },
 
   modeRow: {
@@ -338,6 +461,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: { color: colors.accent, fontSize: 15, fontWeight: '700' },
   linkButton: { alignItems: 'center', paddingVertical: 14 },
   linkButtonText: { color: colors.muted, fontSize: 14 },
+  linkDanger: { color: colors.wrong, fontWeight: '700' },
 
   missedRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
   missedArabic: {

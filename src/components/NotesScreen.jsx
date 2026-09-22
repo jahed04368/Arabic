@@ -12,20 +12,44 @@ function Example({ point }) {
   );
 }
 
+function ExampleList({ items }) {
+  return (
+    <View style={styles.exampleList}>
+      {items.map((item, i) => (
+        <View
+          key={i}
+          style={[styles.exampleListRow, i > 0 && styles.exampleListRowDivided]}
+        >
+          <Text style={styles.exampleListArabic}>{item.ar}</Text>
+          <View style={styles.exampleListText}>
+            <Text style={styles.exampleListEnglish}>{item.en}</Text>
+            <Text style={styles.exampleListTranslit}>{item.tr}</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function Point({ point }) {
+  if (point.sub) return <Text style={styles.subHeading}>{point.sub}</Text>;
+  if (point.list) return <ExampleList items={point.list} />;
+  if (point.ar) return <Example point={point} />;
+  return (
+    <View style={styles.bulletRow}>
+      <Text style={styles.bulletDot}>•</Text>
+      <Text style={styles.bulletText}>{point.text}</Text>
+    </View>
+  );
+}
+
 function Rule({ rule }) {
   return (
     <View style={styles.card}>
       <Text style={styles.ruleHeading}>{rule.heading}</Text>
-      {rule.points.map((point, i) =>
-        point.ar ? (
-          <Example key={i} point={point} />
-        ) : (
-          <View key={i} style={styles.bulletRow}>
-            <Text style={styles.bulletDot}>•</Text>
-            <Text style={styles.bulletText}>{point.text}</Text>
-          </View>
-        )
-      )}
+      {rule.points.map((point, i) => (
+        <Point key={i} point={point} />
+      ))}
     </View>
   );
 }
@@ -40,18 +64,18 @@ function VocabRow({ word, index }) {
   );
 }
 
-function WeekSection({ week, showTitle }) {
+function LessonSection({ lesson, showTitle }) {
   return (
     <View>
-      {showTitle && <Text style={styles.weekTitle}>{week.title}</Text>}
+      {showTitle && <Text style={styles.lessonTitle}>{lesson.title}</Text>}
 
       <Text style={styles.sectionTitle}>Grammar Rules</Text>
-      {week.rules.map((rule, i) => (
+      {lesson.rules.map((rule, i) => (
         <Rule key={i} rule={rule} />
       ))}
 
       <Text style={styles.sectionTitle}>
-        Words to Learn · {week.vocab.length} words
+        Words to Learn · {lesson.vocab.length} words
       </Text>
       <View style={styles.card}>
         <View style={styles.vocabHeader}>
@@ -59,7 +83,7 @@ function WeekSection({ week, showTitle }) {
           <Text style={[styles.vocabHeaderCell, styles.colTranslit]}>Transliteration</Text>
           <Text style={[styles.vocabHeaderCell, styles.colEnglish]}>Meaning</Text>
         </View>
-        {week.vocab.map((word, i) => (
+        {lesson.vocab.map((word, i) => (
           <VocabRow key={word.ar + i} word={word} index={i} />
         ))}
       </View>
@@ -67,18 +91,22 @@ function WeekSection({ week, showTitle }) {
   );
 }
 
-export default function NotesScreen({ weeks }) {
+export default function NotesScreen({ lessons }) {
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
-      {weeks.map((week) => (
-        <WeekSection key={week.id} week={week} showTitle={weeks.length > 1} />
+      {lessons.map((lesson) => (
+        <LessonSection
+          key={lesson.id}
+          lesson={lesson}
+          showTitle={lessons.length > 1}
+        />
       ))}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  weekTitle: { fontSize: 24, fontWeight: '700', color: colors.ink, marginTop: 24 },
+  lessonTitle: { fontSize: 24, fontWeight: '700', color: colors.ink, marginTop: 24 },
   scroll: { padding: 16, paddingBottom: 48, maxWidth: 820, width: '100%', alignSelf: 'center' },
   sectionTitle: {
     fontSize: 13,
@@ -116,6 +144,38 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     writingDirection: 'rtl',
   },
+  subHeading: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.accent,
+    marginTop: 14,
+    marginBottom: 8,
+    lineHeight: 26,
+  },
+  exampleList: {
+    backgroundColor: colors.accentSoft,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  exampleListRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 7 },
+  exampleListRowDivided: { borderTopWidth: 1, borderTopColor: '#d3e3dc' },
+  exampleListArabic: {
+    flex: 1,
+    minWidth: 130,
+    fontFamily: arabicFont,
+    fontSize: 22,
+    lineHeight: 40,
+    color: colors.ink,
+    textAlign: 'right',
+    writingDirection: 'rtl',
+    paddingRight: 14,
+  },
+  exampleListText: { flex: 1, minWidth: 130 },
+  exampleListEnglish: { fontSize: 14, color: colors.ink, lineHeight: 20 },
+  exampleListTranslit: { fontSize: 13, fontStyle: 'italic', color: colors.accent },
   exampleTranslit: { fontSize: 14, fontStyle: 'italic', color: colors.accent, marginTop: 4 },
   exampleEnglish: { fontSize: 15, color: colors.ink, marginTop: 2 },
 

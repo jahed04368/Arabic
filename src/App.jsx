@@ -2,8 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import NotesScreen from './components/NotesScreen';
 import TestScreen from './components/TestScreen';
-import { weeks } from './data';
+import { lessons, vocabFor } from './data';
 import { colors } from './theme';
+import { load, save } from './storage';
 
 const TABS = [
   { id: 'notes', label: 'Notes' },
@@ -11,25 +12,41 @@ const TABS = [
 ];
 
 export default function App() {
-  const [tab, setTab] = useState('notes');
-  const [scope, setScope] = useState(weeks[weeks.length - 1].id);
+  // Remember where you left off between visits.
+  const [tab, setTab] = useState(() => {
+    const saved = load('tab', 'notes');
+    return TABS.some((t) => t.id === saved) ? saved : 'notes';
+  });
 
-  const selectedWeeks = useMemo(
-    () => (scope === 'all' ? weeks : weeks.filter((w) => w.id === scope)),
+  const [scope, setScope] = useState(() => {
+    const saved = load('scope', null);
+    const valid = saved === 'all' || lessons.some((l) => l.id === saved);
+    return valid ? saved : lessons[lessons.length - 1].id;
+  });
+
+  function chooseTab(id) {
+    setTab(id);
+    save('tab', id);
+  }
+
+  function chooseScope(id) {
+    setScope(id);
+    save('scope', id);
+  }
+
+  const selectedLessons = useMemo(
+    () => (scope === 'all' ? lessons : lessons.filter((l) => l.id === scope)),
     [scope]
   );
 
-  const pool = useMemo(
-    () => selectedWeeks.flatMap((w) => w.vocab),
-    [selectedWeeks]
-  );
+  const pool = useMemo(() => vocabFor(selectedLessons), [selectedLessons]);
 
   const scopeLabel =
-    scope === 'all' ? 'all weeks' : selectedWeeks[0]?.title ?? 'all weeks';
+    scope === 'all' ? 'all lessons' : selectedLessons[0]?.title ?? 'all lessons';
 
   const scopeOptions = [
-    ...weeks.map((w) => ({ id: w.id, label: w.title })),
-    ...(weeks.length > 1 ? [{ id: 'all', label: 'All weeks' }] : []),
+    ...lessons.map((l) => ({ id: l.id, label: l.title })),
+    ...(lessons.length > 1 ? [{ id: 'all', label: 'All lessons' }] : []),
   ];
 
   return (
@@ -42,7 +59,7 @@ export default function App() {
             {TABS.map((t) => (
               <Pressable
                 key={t.id}
-                onPress={() => setTab(t.id)}
+                onPress={() => chooseTab(t.id)}
                 style={[styles.tab, tab === t.id && styles.tabActive]}
               >
                 <Text style={[styles.tabText, tab === t.id && styles.tabTextActive]}>
@@ -61,7 +78,7 @@ export default function App() {
               {scopeOptions.map((opt) => (
                 <Pressable
                   key={opt.id}
-                  onPress={() => setScope(opt.id)}
+                  onPress={() => chooseScope(opt.id)}
                   style={[styles.chip, scope === opt.id && styles.chipActive]}
                 >
                   <Text
@@ -78,10 +95,15 @@ export default function App() {
 
       <View style={styles.body}>
         {tab === 'notes' ? (
-          <NotesScreen weeks={selectedWeeks} />
+          <NotesScreen lessons={selectedLessons} />
         ) : (
-          // Remount the test whenever the scope or week set changes
-          <TestScreen key={scope} pool={pool} scopeLabel={scopeLabel} />
+          // Remount the test whenever the selected lessons change
+          <TestScreen
+            key={scope}
+            pool={pool}
+            scopeId={scope}
+            scopeLabel={scopeLabel}
+          />
         )}
       </View>
     </View>

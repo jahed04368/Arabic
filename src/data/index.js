@@ -1,8 +1,9 @@
 import lesson1 from './lesson1.js';
 import lesson2 from './lesson2.js';
+import lesson3 from './lesson3.js';
 
 // Add each new lesson here, newest last.
-export const lessons = [lesson1, lesson2];
+export const lessons = [lesson1, lesson2, lesson3];
 
 // Words from the given lessons, tagged with their lesson and de-duplicated by
 // the Arabic spelling — a word revised in a later lesson is still only asked once.

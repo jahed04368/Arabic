@@ -6,6 +6,37 @@ export default {
   title: 'Lesson 3',
   subtitle: 'Arabic Intensive Course',
 
+  summary: [
+    {
+      title: 'Shaddah with a kasrah',
+      lines: [
+        { text: 'A shaddah (ّ) doubles the letter. A kasrah going with it is written under the shaddah itself.' },
+        { ar: 'مُدَرَّسٌ', en: 'taught — fathah above the shaddah' },
+        { ar: 'مُدَرِّسٌ', en: 'teacher — kasrah below the shaddah' },
+      ],
+    },
+    {
+      title: 'Personal pronouns',
+      lines: [
+        { ar: 'أَنَا', en: 'I' },
+        { ar: 'أَنْتَ · أَنْتِ', en: 'you — to a man · to a woman' },
+        { ar: 'هُوَ · هِيَ', en: 'he / it (m) · she / it (f)' },
+        { ar: 'نَحْنُ', en: 'we' },
+        { ar: 'أَنَا طَالِبٌ', en: 'I am a student — there is no word for "am".' },
+      ],
+    },
+    {
+      title: 'Possessive endings',
+      lines: [
+        { text: 'Attach to the end of the noun; its ending becomes a single damma (or a kasrah before ي).' },
+        { ar: 'بَيْتِي', en: 'my house' },
+        { ar: 'بَيْتُكَ · بَيْتُكِ', en: 'your house — to a man · to a woman' },
+        { ar: 'بَيْتُهُ · بَيْتُهَا', en: 'his house · her house' },
+        { ar: 'بَيْتُنَا', en: 'our house' },
+      ],
+    },
+  ],
+
   rules: [
     {
       heading: '1. Reading the Shaddah (ّ) and Kasrah (ِ)',

@@ -6,6 +6,34 @@ export default {
   title: 'Lesson 1',
   subtitle: 'Arabic Intensive Course',
 
+  summary: [
+    {
+      title: 'Demonstrative',
+      lines: [
+        { ar: 'هَٰذَا', en: 'this — masculine, singular, close to us' },
+        { text: 'A noun straight after it, with no الـ, takes tanween ḍamm (ـٌ) — the English "a / an".' },
+        { ar: 'هَٰذَا بَابٌ', en: 'This is a door.' },
+      ],
+    },
+    {
+      title: 'Question words',
+      lines: [
+        { ar: 'مَا', en: 'what — non-humans: objects and animals' },
+        { ar: 'مَنْ', en: 'who — humans, male or female' },
+        { ar: 'هَلْ', en: 'is / are…? — opens a yes/no question' },
+        { ar: 'نَعَمْ · لَا', en: 'yes · no' },
+        { ar: 'مَنْ هَٰذَا؟ ← هَٰذَا طَالِبٌ', en: 'Who is this? → This is a student.' },
+      ],
+    },
+    {
+      title: 'Conjunction',
+      lines: [
+        { ar: 'وَ', en: 'and — joins words or whole clauses, written onto the next word' },
+        { ar: 'هَٰذَا بَابٌ وَهَٰذَا كَلْبٌ', en: 'This is a door and this is a dog.' },
+      ],
+    },
+  ],
+
   rules: [
     {
       heading: '1. Demonstrative Pronoun: هَٰذَا (Hādhā — "This")',

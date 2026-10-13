@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import NotesScreen from './components/NotesScreen';
+import SummaryScreen from './components/SummaryScreen';
 import TestScreen from './components/TestScreen';
 import { lessons, vocabFor } from './data';
 import { colors } from './theme';
@@ -8,6 +9,7 @@ import { load, save } from './storage';
 
 const TABS = [
   { id: 'notes', label: 'Notes' },
+  { id: 'summary', label: 'Summary' },
   { id: 'test', label: 'Test' },
 ];
 
@@ -96,6 +98,8 @@ export default function App() {
       <View style={styles.body}>
         {tab === 'notes' ? (
           <NotesScreen lessons={selectedLessons} />
+        ) : tab === 'summary' ? (
+          <SummaryScreen lessons={selectedLessons} />
         ) : (
           // Remount the test whenever the selected lessons change
           <TestScreen

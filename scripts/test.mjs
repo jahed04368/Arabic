@@ -42,6 +42,20 @@ for (const l of lessons) {
   );
   check(`${l.title}: every note point has exactly one shape`, badPoints.length === 0,
     JSON.stringify(badPoints).slice(0, 120));
+  check(`${l.title}: has a rules summary`,
+    Array.isArray(l.summary) && l.summary.length > 0);
+  const badSummary = (l.summary || []).filter(
+    (g) => !g.title || !Array.isArray(g.lines) || g.lines.length === 0
+  );
+  check(`${l.title}: every summary group has a title and lines`, badSummary.length === 0);
+  const badSummaryLines = (l.summary || []).flatMap((g) =>
+    g.lines.filter((ln) => (ln.text ? ln.ar || ln.en : !(ln.ar && ln.en)))
+  );
+  check(`${l.title}: every summary line is a rule or an Arabic/English pair`,
+    badSummaryLines.length === 0, JSON.stringify(badSummaryLines).slice(0, 120));
+  const summaryCovers = l.summary.length >= 1 && l.rules.length >= 1;
+  check(`${l.title}: summary covers the lesson's rules`, summaryCovers,
+    `${l.summary.length} summary groups for ${l.rules.length} rules`);
   const badItems = l.rules.flatMap((r) =>
     r.points.filter((p) => p.list).flatMap((p) => p.list.filter((i) => !i.ar || !i.tr || !i.en))
   );

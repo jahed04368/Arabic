@@ -1,7 +1,14 @@
 # Arabic Intensive Course
 
 A small React Native (via `react-native-web`) site for your lesson notes, with a
-vocabulary test. It works offline and saves your progress on your device.
+rules summary and a vocabulary test. It works offline and saves your progress on
+your device.
+
+Three tabs, all scoped by the lesson picker:
+
+- **Notes** — the full write-up of each lesson.
+- **Summary** — every grammar rule condensed into a cheat sheet.
+- **Test** — multiple-choice vocabulary practice.
 
 ## Running it
 
@@ -15,7 +22,7 @@ npm run build   # static site in dist/
 ## Adding a new lesson
 
 1. Copy `src/data/lesson2.js` to `src/data/lesson3.js`.
-2. Edit the `id`, `title`, `rules` and `vocab` in the new file.
+2. Edit the `id`, `title`, `summary`, `rules` and `vocab` in the new file.
 3. Register it in `src/data/index.js`:
 
 ```js
@@ -54,6 +61,24 @@ Each entry in `vocab` is one word:
 
 ```js
 { ar: 'بَابٌ', tr: 'Bāb', en: 'Door' }
+```
+
+### Summary format
+
+`summary` is the cheat-sheet version of the same rules — keep it short, it's
+meant to be skimmed before a test. Each group has a title and some lines, and
+each line is either a plain rule or an Arabic form with its gloss:
+
+```js
+summary: [
+  {
+    title: 'The definite article الـ',
+    lines: [
+      { text: 'الـ and tanween never appear on the same word.' },
+      { ar: 'بَيْتٌ ← اَلْبَيْتُ', en: 'a house → the house (ـٌ becomes ـُ)' },
+    ],
+  },
+]
 ```
 
 ## The test

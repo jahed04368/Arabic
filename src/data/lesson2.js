@@ -6,6 +6,40 @@ export default {
   title: 'Lesson 2',
   subtitle: 'Arabic Intensive Course',
 
+  summary: [
+    {
+      title: 'Feminine demonstrative',
+      lines: [
+        { ar: 'هَٰذِهِ', en: 'this — feminine, singular' },
+        { ar: 'هَٰذِهِ حَقِيبَةٌ', en: 'This is a bag.' },
+      ],
+    },
+    {
+      title: 'Spotting a feminine noun',
+      lines: [
+        { text: 'Most feminine nouns end in tāʾ marbūṭah (ة / ـة).' },
+        { ar: 'طَالِبٌ ← طَالِبَةٌ', en: 'male → female: fathah on the last letter, then add ة' },
+        { text: 'Family words are feminine by meaning, with no ة: بِنْتٌ, أُخْتٌ.' },
+        { text: 'Female proper names take a single damma (ـُ), never tanween: فَاطِمَةُ, زَيْنَبُ.' },
+      ],
+    },
+    {
+      title: 'The definite article الـ',
+      lines: [
+        { text: 'الـ and tanween never appear on the same word.' },
+        { ar: 'بَيْتٌ ← اَلْبَيْتُ', en: 'a house → the house (ـٌ becomes ـُ)' },
+      ],
+    },
+    {
+      title: 'Prepositions فِي and عَلَى',
+      lines: [
+        { text: 'The noun after a preposition becomes majroor — its ending takes a kasrah.' },
+        { ar: 'فِي الْبَيْتِ', en: 'in the house — definite: ـُ becomes ـِ' },
+        { ar: 'فِي بَيْتٍ', en: 'in a house — indefinite: ـٌ becomes ـٍ' },
+      ],
+    },
+  ],
+
   rules: [
     {
       heading: '1. Demonstrative Pronoun: هَٰذِهِ (Hādhihi — "This is" [feminine])',
